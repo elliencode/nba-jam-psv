@@ -1,5 +1,5 @@
 <h1 align="center">
-<img align="center" src="extras/screenshots/banner.png" width="50%"><br>
+<img align="center" src="https://raw.githubusercontent.com/elliencode/nba-jam-psv/refs/heads/main/extras/screenshots/banner.png" width="50%"><br>
 NBA Jam · PSVita Port
 </h1>
 <p align="center">
