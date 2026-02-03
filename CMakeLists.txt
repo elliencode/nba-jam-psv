@@ -11,19 +11,19 @@ project(so_loader C CXX)
 include("${VITASDK}/share/vita.cmake" REQUIRED)
 
 # Vita application configuration
-set(VITA_APP_NAME "so-loader")
-set(VITA_TITLEID "SLDR00000")
-set(VITA_VPKNAME "so_loader")
+set(VITA_APP_NAME "NBA Jam")
+set(VITA_TITLEID "NBAJ00000")
+set(VITA_VPKNAME "com.eamobile.nbajam_row_wf")
 set(VITA_VERSION "01.00")
 set(VITA_MKSFOEX_FLAGS "-d ATTRIBUTE2=12")
 
 # Optional: used for "send" and "dump" targets
-set(PSVITAIP "192.168.0.198" CACHE STRING "PSVita IP (for FTP access)")
+set(PSVITAIP "192.168.0.105" CACHE STRING "PSVita IP (for FTP access)")
 set(PARSECOREPATH "$ENV{PARSECOREPATH}" CACHE STRING "vita-parse-core main.py")
 
 # Game-specific definitions
-set(DATA_PATH "ux0:data/gamename/" CACHE STRING "Path to data (with trailing /)")
-set(SO_PATH "${DATA_PATH}main.so" CACHE STRING "Path to .so")
+set(DATA_PATH "ux0:data/com.eamobile.nbajam_row_wf/" CACHE STRING "Path to data (with trailing /)")
+set(SO_PATH "${DATA_PATH}libnbajam.so" CACHE STRING "Path to .so")
 add_definitions(-DDATA_PATH="${DATA_PATH}" -DSO_PATH="${SO_PATH}")
 
 option(USE_SCELIBC_IO "Use SceLibcBridge for IO and some other std functions" ON)
@@ -43,7 +43,7 @@ else()
 endif()
 
 set(valid_dump_formats GLSL CG)
-option(DUMP_COMPILED_SHADERS "When using GLSL or CG shader format, cache compiled shaders on disk" ON)
+option(DUMP_COMPILED_SHADERS "When using GLSL or CG shader format, cache compiled shaders on disk" OFF)
 if (DUMP_COMPILED_SHADERS)
   if (SHADER_FORMAT IN_LIST valid_dump_formats)
     add_definitions(-DDUMP_COMPILED_SHADERS)
@@ -109,6 +109,15 @@ add_executable(${CMAKE_PROJECT_NAME}
 add_subdirectory(lib/libc_bridge)
 add_dependencies(${CMAKE_PROJECT_NAME} SceLibcBridge)
 
+set(SOFTFP_ABI ON CACHE INTERNAL "Compile the library in soft floating point compatibility mode." FORCE)
+set(HAVE_GLSL_SUPPORT 1 CACHE INTERNAL "0 = None, 1 = Enable experimental GLSL to CG auto translation for shader sources with preprocessor pass (Recommended), 2 = Without preprocessor pass." FORCE)
+if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+    set(LOG_ERRORS 1 CACHE INTERNAL "0 = No logging, 1 = Errors will be logged with sceClibPrintf, 2 = Errors will be logged to ux0:data/vitaGL.log." FORCE)
+endif()
+set(NO_DEBUG 1 CACHE INTERNAL "Disable most of the error handling features (Faster CPU code execution but code may be non compliant to all OpenGL standards)." FORCE)
+add_subdirectory(lib/vitaGL)
+add_dependencies(${CMAKE_PROJECT_NAME} vitaGL)
+
 target_include_directories(${CMAKE_PROJECT_NAME} SYSTEM
                            PUBLIC ${CMAKE_SOURCE_DIR}/lib
                            )
@@ -119,7 +128,9 @@ target_include_directories(${CMAKE_PROJECT_NAME}
 
 target_link_libraries(${CMAKE_PROJECT_NAME}
                       -Wl,--whole-archive pthread -Wl,--no-whole-archive
+                      physfs
                       OpenSLES
+                      openal
                       sndfile
                       vorbis
                       ogg
@@ -127,7 +138,7 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
                       vorbisfile
                       FLAC
                       stdc++
-                      vitaGL
+                      ${CMAKE_BINARY_DIR}/lib/vitaGL/libvitaGL.a
                       vitashark
                       SceShaccCgExt
                       taihen_stub
@@ -163,6 +174,7 @@ vita_create_vpk(${VITA_VPKNAME}.vpk ${VITA_TITLEID} eboot.bin
                 FILE ${CMAKE_SOURCE_DIR}/extras/cpuinfo cpuinfo
                 ${CMAKE_SOURCE_DIR}/extras/meminfo meminfo
                 ${CMAKE_SOURCE_DIR}/extras/urandom urandom
+                ${CMAKE_SOURCE_DIR}/extras/fake-loading-screen.png data/fake-loading-screen.png
                 ${CMAKE_SOURCE_DIR}/extras/livearea/icon0.png sce_sys/icon0.png
                 ${CMAKE_SOURCE_DIR}/extras/livearea/pic0.png sce_sys/pic0.png
                 ${CMAKE_SOURCE_DIR}/extras/livearea/startup.png sce_sys/livearea/contents/startup.png

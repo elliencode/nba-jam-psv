@@ -11,8 +11,11 @@
 
 #include "fios.h"
 
+#include <psp2/kernel/clib.h>
+
 #define MAX_PATH_LENGTH 256
 #define RAMCACHEBLOCKSIZE (128 * 1024)
+#define PSARCCACHEBLOCKSIZE (192 * 1024)
 #define RAMCACHEBLOCKNUM 64
 
 static int64_t g_OpStorage[SCE_FIOS_OP_STORAGE_SIZE(64, MAX_PATH_LENGTH) / sizeof(int64_t) + 1];
@@ -21,7 +24,10 @@ static int64_t g_FHStorage[SCE_FIOS_FH_STORAGE_SIZE(1024, MAX_PATH_LENGTH) / siz
 static int64_t g_DHStorage[SCE_FIOS_DH_STORAGE_SIZE(32, MAX_PATH_LENGTH) / sizeof(int64_t) + 1];
 
 static SceFiosRamCacheContext g_RamCacheContext = SCE_FIOS_RAM_CACHE_CONTEXT_INITIALIZER;
+static SceFiosPsarcDearchiverContext g_PsarcContext;
 static char *g_RamCacheWorkBuffer;
+static int32_t g_PsarcHandle;
+static SceFiosBuffer g_MountBuffer;
 
 int fios_init(const char * path) {
     int res;
@@ -46,6 +52,25 @@ int fios_init(const char * path) {
     params.threadPriority[SCE_FIOS_DECOMPRESSOR_THREAD] = 191;
 
     res = sceFiosInitialize(&params);
+    if (res < 0)
+        return res;
+
+    sceClibMemset(&g_PsarcContext, 0, sizeof(SceFiosPsarcDearchiverContext));
+    g_PsarcContext.size = sizeof(SceFiosPsarcDearchiverContext);
+    g_PsarcContext.pWorkBuffer = memalign(64, PSARCCACHEBLOCKSIZE);
+    g_PsarcContext.workBufferSize = PSARCCACHEBLOCKSIZE;
+    res = sceFiosIOFilterAdd(0, sceFiosIOFilterPsarcDearchiver, &g_PsarcContext);
+    if (res < 0)
+        return res;
+
+    res = sceFiosArchiveGetMountBufferSizeSync(NULL, "ux0:data/com.eamobile.nbajam_row_wf/data.psarc", NULL);
+    if (res < 0)
+        return res;
+
+    g_MountBuffer.length = res;
+    g_MountBuffer.pPtr = malloc(res);
+
+    res = sceFiosArchiveMountSync(NULL, &g_PsarcHandle, "ux0:data/com.eamobile.nbajam_row_wf/data.psarc", "/", g_MountBuffer, NULL);
     if (res < 0)
         return res;
 

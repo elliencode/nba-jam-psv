@@ -25,6 +25,7 @@
 #include <falso_jni/FalsoJNI.h>
 #include <so_util/so_util.h>
 #include <fios/fios.h>
+#include <reimpl/controls.h>
 
 // Base address for the Android .so to be loaded at
 #define LOAD_ADDRESS 0x98000000
@@ -95,4 +96,7 @@ void soloader_init_all() {
 
     jni_init();
     l_success("FalsoJNI initialized.");
+
+    controls_init();
+    l_success("Controls initialized.");
 }

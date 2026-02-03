@@ -2,3 +2,6 @@
 	path = lib/falso_jni
 	url = git@github.com:v-atamanenko/FalsoJNI.git
 	branch = master
+[submodule "lib/vitagl"]
+	path = lib/vitagl
+	url = git@github.com:elliencode/vitaGL-cmake.git

@@ -40,6 +40,8 @@ extern "C" {
 #define DT_WHT 14
 #endif
 
+#define EXT4_SUPER_MAGIC 0xef53
+
 typedef struct __attribute__((__packed__)) stat64_bionic {
     unsigned long long st_dev;
     unsigned char __pad0[4];
@@ -67,6 +69,18 @@ typedef struct __attribute__((__packed__)) dirent64_bionic {
     char d_name[256]; // 256 bytes // offset 0x13
 } dirent64_bionic;
 
+typedef struct __attribute__((__packed__)) __fsid_t {
+    int __val[2];
+} fsid_t;
+
+struct __attribute__((__packed__)) statfs {
+    unsigned long f_type, f_bsize;
+    uint64_t f_blocks, f_bfree, f_bavail;
+    uint64_t f_files, f_ffree;
+    fsid_t f_fsid;
+    unsigned long f_namelen, f_frsize, f_flags, f_spare[4];
+};
+
 int open_soloader(const char * path, int oflag, ...);
 
 FILE * fopen_soloader(const char * filename, const char * mode);
@@ -93,6 +107,22 @@ int fcntl_soloader(int fd, int cmd, ...);
 int ioctl_soloader(int fd, int request, ... /* arg */);
 
 int fsync_soloader(int fd);
+
+int statfs_soloader(const char *path, struct statfs *buf);
+
+int fseek_soloader(FILE *stream, long int offset, int origin);
+
+size_t fread_soloader(void *ptr, size_t size, size_t count, FILE *stream);
+
+long int ftell_soloader(FILE *stream);
+
+int feof_soloader(FILE *stream);
+
+int ferror_soloader(FILE *stream);
+
+int fflush_soloader(FILE *stream);
+
+int fgetc_soloader(FILE *stream);
 
 #ifdef __cplusplus
 };

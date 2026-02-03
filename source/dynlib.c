@@ -44,6 +44,7 @@
 #include <libc_bridge/libc_bridge.h>
 #endif
 
+#include <falso_jni/FalsoJNI.h>
 #include <SLES/OpenSLES.h>
 #include <SLES/OpenSLES_Android.h>
 
@@ -129,7 +130,19 @@ static FILE __sF_fake[3];
 
 void *dlsym_soloader(void * handle, const char * symbol);
 
+void * _ZN2EA6Nimble9findClassEPKc(char * className) {
+    sceClibPrintf("findClass: %s\n", className);
+    return (void*)0x42424242;
+}
+
+JNIEnv * _ZN2EA6Nimble6getEnvEv() {
+    return &jni;
+}
+
 so_default_dynlib default_dynlib[] = {
+        { "_ZN2EA6Nimble9findClassEPKc", (uintptr_t)&_ZN2EA6Nimble9findClassEPKc },
+        { "_ZN2EA6Nimble6getEnvEv", (uintptr_t)&_ZN2EA6Nimble6getEnvEv },
+
         // Common C/C++ internals
         { "_ZNSt8bad_castD1Ev", (uintptr_t)&_ZNSt8bad_castD1Ev },
         { "_ZNSt9exceptionD2Ev", (uintptr_t)&_ZNSt9exceptionD2Ev },
@@ -383,23 +396,23 @@ so_default_dynlib default_dynlib[] = {
         { "readdir_r", (uintptr_t)&readdir_r_soloader },
         { "stat", (uintptr_t)&stat_soloader },
         { "utime", (uintptr_t)&utime },
+        { "fseek", (uintptr_t)&fseek_soloader },
+        { "fread", (uintptr_t)&fread_soloader },
+        { "ftell", (uintptr_t)&ftell_soloader },
+        { "feof", (uintptr_t)&feof_soloader },
+        { "ferror", (uintptr_t)&ferror_soloader },
+        { "fflush", (uintptr_t)&fflush_soloader },
+        { "fgetc", (uintptr_t)&fgetc_soloader },
 
         #ifdef USE_SCELIBC_IO
             { "fdopen", (uintptr_t)&sceLibcBridge_fdopen },
-            { "feof", (uintptr_t)&sceLibcBridge_feof },
-            { "ferror", (uintptr_t)&sceLibcBridge_ferror },
-            { "fflush", (uintptr_t)&sceLibcBridge_fflush },
-            { "fgetc", (uintptr_t)&sceLibcBridge_fgetc },
             { "fgetpos", (uintptr_t)&sceLibcBridge_fgetpos },
             { "fgets", (uintptr_t)&sceLibcBridge_fgets },
             { "fileno", (uintptr_t)&sceLibcBridge_fileno },
             { "fputc", (uintptr_t)&sceLibcBridge_fputc },
             { "fputs", (uintptr_t)&sceLibcBridge_fputs },
-            { "fread", (uintptr_t)&sceLibcBridge_fread },
             { "freopen", (uintptr_t)&sceLibcBridge_freopen },
-            { "fseek", (uintptr_t)&sceLibcBridge_fseek },
             { "fsetpos", (uintptr_t)&sceLibcBridge_fsetpos },
-            { "ftell", (uintptr_t)&sceLibcBridge_ftell },
             { "fwide", (uintptr_t)&sceLibcBridge_fwide },
             { "fwrite", (uintptr_t)&sceLibcBridge_fwrite },
             { "getc", (uintptr_t)&sceLibcBridge_getc },
@@ -413,20 +426,13 @@ so_default_dynlib default_dynlib[] = {
             { "ungetwc", (uintptr_t)&sceLibcBridge_ungetwc },
         #else
             { "fdopen", (uintptr_t)&fdopen },
-            { "feof", (uintptr_t)&feof },
-            { "ferror", (uintptr_t)&ferror },
-            { "fflush", (uintptr_t)&fflush },
-            { "fgetc", (uintptr_t)&fgetc },
             { "fgetpos", (uintptr_t)&fgetpos },
             { "fgets", (uintptr_t)&fgets },
             { "fileno", (uintptr_t)&fileno },
             { "fputc", (uintptr_t)&fputc },
             { "fputs", (uintptr_t)&fputs },
-            { "fread", (uintptr_t)&fread },
             { "freopen", (uintptr_t)&freopen },
-            { "fseek", (uintptr_t)&fseek },
             { "fsetpos", (uintptr_t)&fsetpos },
-            { "ftell", (uintptr_t)&ftell },
             { "fwide", (uintptr_t)&fwide },
             { "fwrite", (uintptr_t)&fwrite },
             { "getc", (uintptr_t)&getc },
@@ -501,7 +507,7 @@ so_default_dynlib default_dynlib[] = {
         { "eglGetConfigs", (uintptr_t)&eglGetConfigs },
         { "eglGetCurrentContext", (uintptr_t)&eglGetCurrentContext },
         { "eglGetDisplay", (uintptr_t)&eglGetDisplay },
-        { "eglGetError", (uintptr_t)&eglGetError },
+        { "eglGetError", (uintptr_t)&ret0 },
         { "eglGetProcAddress", (uintptr_t)&eglGetProcAddress },
         { "eglInitialize", (uintptr_t)&eglInitialize },
         { "eglMakeCurrent", (uintptr_t)&eglMakeCurrent },
@@ -619,7 +625,7 @@ so_default_dynlib default_dynlib[] = {
         { "glGetBufferPointervOES", (uintptr_t)&ret0 },
         { "glGetClipPlanef", (uintptr_t)&ret0 },
         { "glGetClipPlanex", (uintptr_t)&ret0 },
-        { "glGetError", (uintptr_t)&glGetError },
+        { "glGetError", (uintptr_t)&ret0 },
         { "glGetFixedv", (uintptr_t)&ret0 },
         { "glGetFloatv", (uintptr_t)&glGetFloatv },
         { "glGetFramebufferAttachmentParameterivOES", (uintptr_t)&glGetFramebufferAttachmentParameteriv },
@@ -935,8 +941,11 @@ so_default_dynlib default_dynlib[] = {
         // Syscalls
         { "fork", (uintptr_t)&fork },
         { "getpagesize", (uintptr_t)&getpagesize },
+        { "getuid", (uintptr_t)&getuid },
+        { "getpwuid", (uintptr_t)&ret0 },
         { "getpid", (uintptr_t)&getpid },
         { "sbrk", (uintptr_t)&sbrk },
+        { "statfs", (uintptr_t)&statfs_soloader },
         { "syscall", (uintptr_t)&syscall },
         { "sysconf", (uintptr_t)&ret0 },
         { "system", (uintptr_t)&system },
@@ -1046,6 +1055,7 @@ so_default_dynlib default_dynlib[] = {
         { "inflateInit2_", (uintptr_t)&inflateInit2_ },
         { "inflateInit_", (uintptr_t)&inflateInit_ },
         { "inflateReset", (uintptr_t)&inflateReset },
+        { "inflateReset2", (uintptr_t)&inflateReset2 },
         { "uncompress", (uintptr_t)&uncompress },
 };
 

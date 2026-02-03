@@ -21,6 +21,8 @@
 #include <libc_bridge/libc_bridge.h>
 #endif
 
+#include <fios/fios.h>
+
 #include "utils/logger.h"
 #include "utils/utils.h"
 
@@ -30,11 +32,27 @@
 // void stat_newlib_to_bionic(struct stat * src, stat64_bionic * dst);
 #include "reimpl/bits/_struct_converters.c"
 
+#include "_existing_files.c"
+
+static int compare_strings(const void *a, const void *b) {
+    return strcmp(*(const char **)a, *(const char **)b);
+}
+
 FILE * fopen_soloader(const char * filename, const char * mode) {
-    if (strcmp(filename, "/proc/cpuinfo") == 0) {
-        return fopen_soloader("app0:/cpuinfo", mode);
-    } else if (strcmp(filename, "/proc/meminfo") == 0) {
-        return fopen_soloader("app0:/meminfo", mode);
+    if (strchr(filename, '/') == filename) {
+        char **existing_file = bsearch(&filename, existing_files, existing_files_len, sizeof(existing_files[0]), compare_strings);
+        if (existing_file) {
+            FILE * f = NULL;
+
+            if (sceFiosFHOpenSync(NULL, (int32_t*)&f, filename, NULL)) {
+                l_warn("fopen<psarc>(%s, %s): not found / 0x%x", filename, mode, f);
+                return NULL;
+            } else {
+                //l_debug("fopen<psarc>(%s, %s): 0x%x", filename, mode, f);
+                return f;
+            }
+        }
+        return NULL;
     }
 
 #ifdef USE_SCELIBC_IO
@@ -106,14 +124,19 @@ int stat_soloader(const char * path, stat64_bionic * buf) {
 }
 
 int fclose_soloader(FILE * f) {
+    //l_debug("fclose(%p)", f);
+
+    if ((uintptr_t)f > 0x81000000) {
 #ifdef USE_SCELIBC_IO
-    int ret = sceLibcBridge_fclose(f);
+        int ret = sceLibcBridge_fclose(f);
 #else
-    int ret = fclose(f);
+        int ret = fclose(f);
 #endif
 
-    l_debug("fclose(%p): %i", f, ret);
-    return ret;
+        return ret;
+    }
+
+    sceFiosFHCloseSync(NULL, (int32_t)f);
 }
 
 int close_soloader(int fd) {
@@ -182,4 +205,111 @@ int fsync_soloader(int fd) {
     int ret = fsync(fd);
     l_debug("fsync(%i): %i", fd, ret);
     return ret;
+}
+
+int statfs_soloader(const char *path, struct statfs *buf) {
+    l_debug("statfs(\"%s\", %p)");
+
+    if (!buf)
+        return -1;
+
+    buf->f_type = EXT4_SUPER_MAGIC;
+    //TODO: can do actual values here at some point
+    buf->f_blocks = 10000000;
+    buf->f_bfree = 10000000;
+    buf->f_bavail = 10000000;
+    buf->f_files = 10000000;
+    buf->f_ffree = 10000000;
+    buf->f_bsize = 1024;
+    buf->f_frsize = 1024;
+
+    return 0;
+}
+
+int fseek_soloader(FILE *stream, long int offset, int origin) {
+    //l_debug("fseek(%p, %i, %i)", stream, offset, origin);
+    if ((uintptr_t)stream > 0x81000000)
+#ifdef USE_SCELIBC_IO
+        return sceLibcBridge_fseek(stream, offset, origin);
+#else
+        return fseek(stream, offset, origin);
+#endif
+
+    sceFiosFHSeek((int32_t)stream, offset, origin);
+    return 0;
+}
+
+size_t fread_soloader(void *ptr, size_t size, size_t count, FILE *stream) {
+    //l_debug("fread_soloader(%p, %i, %i, %i)", ptr, size, count, stream);
+
+    if ((uintptr_t)stream > 0x81000000)
+#ifdef USE_SCELIBC_IO
+        return sceLibcBridge_fread(ptr, size, count, stream);
+#else
+        return fread(ptr, size, count, stream);
+#endif
+
+    sceFiosFHReadSync(NULL, (int32_t)stream, ptr, size * count);
+
+    return count;
+}
+
+long int ftell_soloader(FILE *stream) {
+    //l_debug("ftell_soloader(%p)", stream);
+
+    if ((uintptr_t)stream > 0x81000000)
+#ifdef USE_SCELIBC_IO
+        return sceLibcBridge_ftell(stream);
+#else
+        return ftell(stream);
+#endif
+
+    return sceFiosFHTell((int32_t)stream);
+}
+
+int feof_soloader(FILE *stream) {
+    //l_debug("feof_soloader(%p)", stream);
+
+    if ((uintptr_t)stream > 0x81000000)
+#ifdef USE_SCELIBC_IO
+        return sceLibcBridge_feof(stream);
+#else
+        return feof(stream);
+#endif
+
+    return 0;
+}
+
+int ferror_soloader(FILE *stream) {
+    l_debug("ferror_soloader(%p)", stream);
+    if ((uintptr_t)stream > 0x81000000)
+#ifdef USE_SCELIBC_IO
+        return sceLibcBridge_ferror(stream);
+#else
+        return ferror(stream);
+#endif
+
+    return 0;
+}
+
+int fflush_soloader(FILE *stream) {
+    if ((uintptr_t)stream > 0x81000000)
+#ifdef USE_SCELIBC_IO
+        return sceLibcBridge_fflush(stream);
+#else
+        return fflush(stream);
+#endif
+
+    return 0;
+}
+
+int fgetc_soloader(FILE *stream) {
+    if ((uintptr_t)stream > 0x81000000)
+#ifdef USE_SCELIBC_IO
+        return sceLibcBridge_fgetc(stream);
+#else
+        return fgetc(stream);
+#endif
+
+    return 0;
 }

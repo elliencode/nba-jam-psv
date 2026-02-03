@@ -25,6 +25,14 @@ extern "C" {
 #define SCE_FIOS_PARAMS_INITIALIZER { 0, sizeof(SceFiosParams), 0, 0, 2, 1, 0, 0, 256 * 1024, 2, 0, 0, 0, 0, 0, SCE_FIOS_BUFFER_INITIALIZER, SCE_FIOS_BUFFER_INITIALIZER, SCE_FIOS_BUFFER_INITIALIZER, SCE_FIOS_BUFFER_INITIALIZER, NULL, NULL, NULL, { 66, 189, 66 }, { 0x40000, 0, 0x40000}, { 8 * 1024, 16 * 1024, 8 * 1024}}
 #define SCE_FIOS_RAM_CACHE_CONTEXT_INITIALIZER { sizeof(SceFiosRamCacheContext), 0, (64 * 1024), NULL, NULL, 0, {0, 0, 0} }
 
+typedef struct SceFiosPsarcDearchiverContext {
+    size_t size;
+    size_t  workBufferSize;
+    void *pWorkBuffer;
+    intptr_t flags;
+    intptr_t reserved[3];
+} SceFiosPsarcDearchiverContext;
+
 typedef enum SceFiosThreadType {
     SCE_FIOS_IO_THREAD = 0,
     SCE_FIOS_DECOMPRESSOR_THREAD = 1,
@@ -75,11 +83,20 @@ typedef struct SceFiosParams {
     int threadStackSize[3];
 } SceFiosParams;
 
+int sceFiosArchiveMountSync(const void *attr, int32_t *fh, const char *path, const char *mount_point, SceFiosBuffer mount_buffer, void *params);
+int64_t sceFiosArchiveGetMountBufferSizeSync(const void *attr, const char *path, void *params);
 int sceFiosInitialize(const SceFiosParams *params);
 void sceFiosTerminate();
 
 int sceFiosIOFilterAdd(int index, void *pFilterCallback, void *pFilterContext);
 void sceFiosIOFilterCache();
+void sceFiosIOFilterPsarcDearchiver();
+
+int sceFiosFHOpenSync(const void *attr, int32_t *fh, const char *path, const void *params);
+int64_t sceFiosFHReadSync(void *attr, int32_t fh, void *pBuf, int64_t length);
+int64_t sceFiosFHSeek(int32_t fh, int64_t offset, int32_t whence);
+int64_t sceFiosFHTell(int32_t fh);
+int sceFiosFHCloseSync(void *attr, int32_t fh);
 
 int fios_init(const char * path);
 
