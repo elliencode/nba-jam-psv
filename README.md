@@ -99,7 +99,7 @@ To properly install the game, follow these steps precisely:
 
 - Rename the newly created psarc archive to `data.psarc` and transfer it to `ux0:data/com.eamobile.nbajam_row_wf/`.
 
-- Install `com.eamobile.nbajam_row_wf.vpk` (from [Releases][latest-release]).
+- Install `com.eamobile.nbajam_row_wf.vpk` (from [Releases](https://github.com/elliencode/nba-jam-psv/releases)).
 
 Controls
 -----------------
