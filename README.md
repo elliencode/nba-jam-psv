@@ -152,7 +152,7 @@ the MIT license. See the [LICENSE](LICENSE) file for details.
 [fdfix]: https://github.com/TheOfficialFloW/FdFix/releases/
 [unpack-on-phone]: https://stackoverflow.com/questions/11012976/how-do-i-get-the-apk-of-an-installed-app-without-root-access
 [shrkbrd]: https://github.com/Rinnegatamante/ShaRKBR33D/releases/latest
-[latest-release]: https://github.com/elliencode/actionsquad-psv/releases/latest
+[latest-release]: https://github.com/elliencode/nba-jam-psv/releases/latest
 
 [flow]: https://github.com/TheOfficialFloW/
 [rinne]: https://github.com/Rinnegatamante/
